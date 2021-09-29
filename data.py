@@ -9,7 +9,7 @@ import numpy as np
 
 class FcgrBags(Dataset):
 
-    def __init__(self, kmers_len = 2, bags_number = 4,  transform = None):
+    def __init__(self, kmers_len = 2, transform = None):
         #Estraiamo le sequenze dal file fasta
         path = str(pathlib.Path(__file__).resolve()).removesuffix("\data.py").replace('\\','/') + "/datasets/Drosophila_Promoter.fas"
         sequence_list = sq.sequencer(path)
@@ -33,10 +33,19 @@ class FcgrBags(Dataset):
                 bags_lables.extend(1 for _ in range(4))
 
         device = torch.device('cuda' if torch.cuda.is_available else 'cpu')
-        self.fcgr_seq = torch.tensor(bags,device=device,dtype=torch.float32,requires_grad=True)
-        self.lables = torch.tensor(bags_lables,device=device,dtype=torch.float32,requires_grad=True)
-        print('d')
+        self.fcgr_bags = torch.tensor(bags,device=device,dtype=torch.float32,requires_grad=True)
+        self.lables = torch.tensor(bags_lables,device=device,dtype=torch.long)
+        
+        self.transform = transform
+        self.sample_number = self.fcgr_bags.size()[0]
 
+    def __getitem__(self,index):
+        sample = self.fcgr_bags[index],self.lables[index]
+
+        if self.transform != None:
+            sample = (self.transform(sample[0],sample[1]))
+        
+        return sample
     
-
-fcgr_bags = FcgrBags()
+    def __len__(self):
+        return self.sample_number
